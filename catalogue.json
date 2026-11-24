@@ -1,0 +1,24 @@
+{
+  "format": "alfie-catalogue",
+  "formatVersion": 1,
+  "name": "Alfie Marketplace",
+  "updatedAt": "2026-11-24T21:53:31.074Z",
+  "items": [
+    {
+      "id": "unit-converter",
+      "kind": "skill",
+      "name": "Unit converter",
+      "version": "1.0.0",
+      "author": "Alfie",
+      "summary": "Converts units and counts the days between dates",
+      "description": "Converts lengths, weights, temperatures and volumes, and counts the days between two dates. An example of an Alfie skill: it needs no permissions at all.",
+      "category": "Tools",
+      "file": "skills/unit-converter-1.0.0.alfieskill",
+      "sha256": "d29aa294d477e2813cdfbcce3d3f32190e1dccfd4a5ced78dbe356c7b4997758",
+      "size": 6501,
+      "permissions": [],
+      "signer": "506A-0AFD-59CB-4324",
+      "addedAt": "2026-11-24T21:53:31.073Z"
+    }
+  ]
+}
