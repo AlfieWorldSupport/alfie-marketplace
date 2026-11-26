@@ -1,0 +1,39 @@
+{
+  "id": "unit-converter",
+  "name": "Unit converter",
+  "version": "1.0.0",
+  "author": "Alfie",
+  "description": "Converts lengths, weights, temperatures and volumes, and counts the days between two dates. An example of an Alfie skill: it needs no permissions at all.",
+  "entry": "index.js",
+  "permissions": [],
+  "tools": [
+    {
+      "name": "convert_units",
+      "description": "Convert a number from one unit to another. Units: mm, cm, m, km, in, ft, yd, mi; mg, g, kg, oz, lb, st; C, F, K; ml, l, tsp, tbsp, cup, floz, pt, qt, gal.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "number" },
+          "from": { "type": "string", "description": "Unit to convert from, e.g. km" },
+          "to": { "type": "string", "description": "Unit to convert to, e.g. mi" }
+        },
+        "required": ["value", "from", "to"]
+      }
+    },
+    {
+      "name": "days_between",
+      "description": "How many days there are between two dates (YYYY-MM-DD).",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "start": { "type": "string", "description": "First date, YYYY-MM-DD" },
+          "end": { "type": "string", "description": "Second date, YYYY-MM-DD" }
+        },
+        "required": ["start", "end"]
+      }
+    }
+  ],
+  "prompt": "Use convert_units for unit conversions instead of working them out yourself."
+}

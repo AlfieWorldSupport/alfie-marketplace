@@ -1,0 +1,63 @@
+name: Submit a character
+description: Offer a VRM character for the Alfie Marketplace (reviewed by hand before it's listed).
+title: "Character: "
+labels: ["submission", "character"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing a character! Read [SUBMITTING.md](https://github.com/AlfieWorldSupport/alfie-marketplace/blob/main/SUBMITTING.md) first.
+        Only characters you made, or whose licence lets you share them, can be listed. Characters from games, anime or films you don't have the rights to won't be.
+  - type: input
+    id: name
+    attributes:
+      label: Character name
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: input
+    id: author
+    attributes:
+      label: Made by
+      description: The name to show as the maker.
+    validations:
+      required: true
+  - type: input
+    id: summary
+    attributes:
+      label: One line about them
+      description: Shown on their card in the Marketplace.
+      placeholder: A cheerful helper with a big hat
+    validations:
+      required: true
+  - type: textarea
+    id: licence
+    attributes:
+      label: Licence
+      description: Who may use the model, whether commercial use is allowed, and a link to the terms if there are any.
+    validations:
+      required: true
+  - type: textarea
+    id: model
+    attributes:
+      label: The model
+      description: Attach the zipped .vrm (up to 25 MB), or give a download link for bigger files. A picture (PNG/JPEG, 16:9, under 2 MB) is welcome too.
+    validations:
+      required: true
+  - type: checkboxes
+    id: promises
+    attributes:
+      label: Checks
+      options:
+        - label: I made this character, or its licence allows me to share it like this.
+          required: true
+        - label: It isn't a character from a game, anime, film or other work that I don't have the rights to.
+          required: true
+        - label: I tried it in Alfie (Character → Import).
+          required: true

@@ -1,0 +1,98 @@
+name: Submit a skill
+description: Offer a skill for the Alfie Marketplace (reviewed by hand before it's listed).
+title: "Skill: "
+labels: ["submission", "skill"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for making something for Alfie! Read [SUBMITTING.md](https://github.com/AlfieWorldSupport/alfie-marketplace/blob/main/SUBMITTING.md) first.
+        GitHub doesn't accept `.alfieskill` files, so **zip the package** and attach the `.zip` below. Never upload your signing key.
+  - type: input
+    id: name
+    attributes:
+      label: Skill name
+      placeholder: Weather
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: input
+    id: summary
+    attributes:
+      label: One line about what it does
+      description: Shown on its card in the Marketplace (up to about 120 characters).
+      placeholder: Today's weather and the forecast for your town
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What it can do, and an example of asking Alfie to use it.
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Productivity
+        - Tools
+        - Fun
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: permissions
+    attributes:
+      label: Permissions it asks for
+      description: Tick exactly what skill.json lists.
+      options:
+        - label: "files.read (reads the user's shared folders)"
+        - label: "files.write (writes in the user's shared folders)"
+        - label: "programs (starts other programs)"
+        - label: "network (uses the internet)"
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it needs those permissions
+      description: For network, say which websites or services it contacts.
+  - type: input
+    id: fingerprint
+    attributes:
+      label: Maker fingerprint
+      description: "From `node alfie-skill.cjs inspect <package>`, like 6C4C-90BE-F53F-9623."
+      placeholder: XXXX-XXXX-XXXX-XXXX
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source code
+      description: A link to the code (a public repository is best).
+    validations:
+      required: true
+  - type: textarea
+    id: package
+    attributes:
+      label: The package
+      description: Attach the zipped .alfieskill here (drag and drop). A picture (PNG/JPEG, 16:9, under 2 MB) is welcome too.
+    validations:
+      required: true
+  - type: checkboxes
+    id: promises
+    attributes:
+      label: Checks
+      options:
+        - label: I made this skill (or have the right to share it), and it's signed with my own key.
+          required: true
+        - label: "`alfie-skill test` passes, and I tried it in Alfie."
+          required: true
+        - label: It doesn't collect data, post or send anything without asking, or try to get around Alfie's permission checks.
+          required: true

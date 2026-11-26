@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How to make a skill
+    url: https://github.com/AlfieWorldSupport/alfie-marketplace/blob/main/MAKING-SKILLS.md
+    about: The developer kit, the skill format and the sandbox.
+  - name: How submitting works
+    url: https://github.com/AlfieWorldSupport/alfie-marketplace/blob/main/SUBMITTING.md
+    about: What gets reviewed, what's accepted, updates and removal.
