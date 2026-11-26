@@ -1029,6 +1029,7 @@ function datetime(args) {
 var anyString = /^[\s\S]{0,}$/;
 var integer = /^-?\d+$/;
 var number$1 = /^-?\d+(?:\.\d+)?$/;
+var boolean$1 = /^(?:true|false)$/i;
 var lowercase = /^[^A-Z]*$/;
 var uppercase = /^[^a-z]*$/;
 // node_modules/zod/v4/core/checks.js
@@ -1827,6 +1828,24 @@ var $ZodNumber = /*@__PURE__*/ $constructor("$ZodNumber", (inst, def) => {
 var $ZodNumberFormat = /*@__PURE__*/ $constructor("$ZodNumberFormat", (inst, def) => {
 	$ZodCheckNumberFormat.init(inst, def);
 	$ZodNumber.init(inst, def);
+});
+var $ZodBoolean = /*@__PURE__*/ $constructor("$ZodBoolean", (inst, def) => {
+	$ZodType.init(inst, def);
+	inst._zod.pattern = boolean$1;
+	inst._zod.parse = (payload, _ctx) => {
+		if (def.coerce) try {
+			payload.value = Boolean(payload.value);
+		} catch (_) {}
+		const input = payload.value;
+		if (typeof input === "boolean") return payload;
+		payload.issues.push({
+			expected: "boolean",
+			code: "invalid_type",
+			input,
+			inst
+		});
+		return payload;
+	};
 });
 var $ZodUnknown = /*@__PURE__*/ $constructor("$ZodUnknown", (inst, def) => {
 	$ZodType.init(inst, def);
@@ -3441,6 +3460,13 @@ function _int(Class, params) {
 	});
 }
 // @__NO_SIDE_EFFECTS__
+function _boolean(Class, params) {
+	return new Class({
+		type: "boolean",
+		...normalizeParams(params)
+	});
+}
+// @__NO_SIDE_EFFECTS__
 function _unknown(Class) {
 	return new Class({ type: "unknown" });
 }
@@ -4216,6 +4242,9 @@ var numberProcessor = (schema, ctx, _json, params) => {
 		if (first !== void 0) json.multipleOf = first;
 		if (rest.length) json.allOf = [...json.allOf ?? [], ...rest.map((m) => ({ multipleOf: m }))];
 	}
+};
+var booleanProcessor = (_schema, _ctx, json, _params) => {
+	json.type = "boolean";
 };
 var neverProcessor = (_schema, _ctx, json, _params) => {
 	json.not = {};
@@ -5087,6 +5116,14 @@ var ZodNumberFormat = /*@__PURE__*/ $constructor("ZodNumberFormat", (inst, def) 
 function int(params) {
 	return /* @__PURE__ */ _int(ZodNumberFormat, params);
 }
+var ZodBoolean = /*@__PURE__*/ $constructor("ZodBoolean", (inst, def) => {
+	$ZodBoolean.init(inst, def);
+	ZodType.init(inst, def);
+	inst._zod.processJSONSchema = (ctx, json, params) => booleanProcessor(inst, ctx, json, params);
+});
+function boolean(params) {
+	return /* @__PURE__ */ _boolean(ZodBoolean, params);
+}
 var ZodUnknown = /*@__PURE__*/ $constructor("ZodUnknown", (inst, def) => {
 	$ZodUnknown.init(inst, def);
 	ZodType.init(inst, def);
@@ -5728,6 +5765,18 @@ var catalogueItemSchema = object({
 	/** Optional picture (PNG/JPEG, up to 2 MB), relative to the catalogue. */
 	image: safePath.optional(),
 	imageSha256: string().regex(/^[a-f0-9]{64}$/).optional(),
+	/** More pictures after the cover (each checked against its SHA-256 like the cover). */
+	gallery: array(object({
+		path: safePath,
+		sha256: string().regex(/^[a-f0-9]{64}$/)
+	})).max(4).default([]),
+	/** Words people might search for. */
+	tags: array(string().max(24)).max(8).default([]),
+	/** Characters that aren't for everyone (shown with a Mature label). */
+	mature: boolean().default(false),
+	/** Where the source code is (skills) and where to get help. */
+	sourceUrl: string().max(300).optional(),
+	supportUrl: string().max(300).optional(),
 	/** Skills: what the package asks for, and the maker key that signed it (if any). */
 	permissions: array(_enum(SKILL_PERMISSIONS)).default([]),
 	signer: string().max(30).nullable().default(null),
@@ -5741,6 +5790,35 @@ var catalogueSchema = object({
 	name: string().max(80).default("Alfie Marketplace"),
 	updatedAt: string().max(40),
 	items: array(catalogueItemSchema).max(1e3)
+});
+/** submission.json, as it's written into the pull request (and read back by `catalogue add-submission`). */
+var submissionSchema = object({
+	format: literal("alfie-submission"),
+	formatVersion: literal(1),
+	kind: _enum(["skill", "character"]),
+	id: string().regex(/^[a-z0-9][a-z0-9-]{1,59}$/),
+	name: string().min(1).max(60),
+	version: string().min(1).max(20),
+	author: string().max(80),
+	summary: string().min(1).max(160),
+	description: string().max(2e3),
+	category: _enum(MARKET_CATEGORIES),
+	tags: array(string().max(24)).max(8),
+	mature: boolean(),
+	licence: string().max(200).optional(),
+	sourceUrl: string().max(300).optional(),
+	supportUrl: string().max(300).optional(),
+	whatsNew: string().max(1e3).optional(),
+	permissions: array(_enum(SKILL_PERMISSIONS)),
+	permissionsWhy: string().max(1e3).optional(),
+	signer: string().max(30).nullable(),
+	price: literal(0),
+	/** The item's file and its pictures (the first is the cover), relative to the submission folder. */
+	file: string().regex(/^[\w.-]+$/),
+	images: array(string().regex(/^[\w.-]+$/)).max(5),
+	submittedBy: string().max(40),
+	submittedAt: string().max(40),
+	app: string().max(20)
 });
 // src/main/skills/skill-process.ts
 /**
@@ -6159,6 +6237,8 @@ Marketplace curator:
   catalogue add <dir> <file> --summary "..."    add or update a .alfieskill or .vrm
        [--category Productivity|Tools|Fun|Characters|Other] [--image <png|jpg>] [--description "..."]
        characters also: --name "..." --version 1.0.0 [--author "..."] [--licence "..."] [--id my-id]
+  catalogue review <dir> <pr>                   fetch an upload (pull request) into a review folder
+  catalogue add-submission <dir> <folder>       add a reviewed upload (pictures, tags and all)
   catalogue remove <dir> <id>                   take an item out
   catalogue list <dir>                          show what's in it
   catalogue sign <dir> --key <curator key>      sign it (do this last, after every change)
@@ -6173,6 +6253,15 @@ function readCatalogue(dir) {
 	if (!(0, node_fs.existsSync)(file)) fail(`No catalogue.json in ${dir}. Start one with  alfie-skill catalogue init ${dir}`);
 	const parsed = catalogueSchema.safeParse(JSON.parse((0, node_fs.readFileSync)(file, "utf8")));
 	if (!parsed.success) fail(`catalogue.json isn't valid: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`);
+	return parsed.data;
+}
+/** A submission folder (from `catalogue review`): submission.json checked, and every file it names present. */
+function readSubmission(folder) {
+	const file = (0, node_path.join)(folder, "submission.json");
+	if (!(0, node_fs.existsSync)(file)) fail(`No submission.json in ${folder}.`);
+	const parsed = submissionSchema.safeParse(JSON.parse((0, node_fs.readFileSync)(file, "utf8")));
+	if (!parsed.success) fail(`submission.json isn't valid: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`);
+	for (const f of [parsed.data.file, ...parsed.data.images]) if (!(0, node_fs.existsSync)((0, node_path.join)(folder, f))) fail(`${f} is missing from the submission.`);
 	return parsed.data;
 }
 function writeCatalogue(dir, c) {
@@ -6226,7 +6315,10 @@ function catalogue(pos, flags) {
 					size: bytes.length,
 					permissions: m.permissions,
 					signer: r.signer,
-					addedAt: (/* @__PURE__ */ new Date()).toISOString()
+					addedAt: (/* @__PURE__ */ new Date()).toISOString(),
+					gallery: [],
+					tags: [],
+					mature: false
 				};
 				if (!r.signer) warn("This skill package isn't signed by its maker. It can still be listed, but users will see \"Not signed\".");
 			} else if (file.toLowerCase().endsWith(".vrm")) {
@@ -6254,7 +6346,10 @@ function catalogue(pos, flags) {
 					permissions: [],
 					signer: null,
 					licence: flag("licence"),
-					addedAt: (/* @__PURE__ */ new Date()).toISOString()
+					addedAt: (/* @__PURE__ */ new Date()).toISOString(),
+					gallery: [],
+					tags: [],
+					mature: flags.mature !== void 0
 				};
 				warn("Only list characters you made or may share: check the model's licence.");
 			} else return fail("Add a .alfieskill or a .vrm file.");
@@ -6272,7 +6367,8 @@ function catalogue(pos, flags) {
 				const old = c.items.find((x) => x.id === item.id);
 				if (old?.image) Object.assign(item, {
 					image: old.image,
-					imageSha256: old.imageSha256
+					imageSha256: old.imageSha256,
+					gallery: old.gallery
 				});
 			}
 			const was = c.items.findIndex((x) => x.id === item.id);
@@ -6280,6 +6376,110 @@ function catalogue(pos, flags) {
 			else c.items.push(item);
 			writeCatalogue(dir, c);
 			ok(`${was >= 0 ? "Updated" : "Added"} ${item.name} ${item.version} (${item.kind}). Sign the catalogue again before publishing.`);
+			return;
+		}
+		case "review": {
+			const pr = arg && /^\d+$/.test(arg) ? arg : fail("Usage: alfie-skill catalogue review <dir> <pull request number>");
+			readCatalogue(dir);
+			const git = (...a) => (0, node_child_process.execFileSync)("git", [
+				"-C",
+				dir,
+				...a
+			], { maxBuffer: 314572800 });
+			git("fetch", "--quiet", "origin", `pull/${pr}/head`);
+			const changed = git("diff", "--name-only", git("merge-base", "HEAD", "FETCH_HEAD").toString().trim(), "FETCH_HEAD").toString().split(/\r?\n/).filter(Boolean);
+			const outside = changed.filter((p) => !p.startsWith("submissions/"));
+			if (outside.length) warn(`This pull request also changes files outside submissions/ (${outside.slice(0, 5).join(", ")}). Never merge it.`);
+			const folders = [...new Set(changed.filter((p) => p.startsWith("submissions/")).map((p) => p.split("/").slice(0, 2).join("/")))];
+			if (folders.length !== 1) fail(`Expected one submission folder in the pull request, found ${folders.length}.`);
+			const out = (0, node_path.resolve)(dir, "..", "submission-reviews", `pr-${pr}`);
+			(0, node_fs.rmSync)(out, {
+				recursive: true,
+				force: true
+			});
+			(0, node_fs.mkdirSync)(out, { recursive: true });
+			for (const p of changed.filter((x) => x.startsWith(`${folders[0]}/`))) {
+				const name = (0, node_path.basename)(p);
+				if (!/^[\w.-]+$/.test(name) || p.split("/").length !== 3) fail(`Unexpected file ${p}.`);
+				(0, node_fs.writeFileSync)((0, node_path.join)(out, name), git("show", `FETCH_HEAD:${p}`));
+			}
+			const s = readSubmission(out);
+			console.log(`  ${s.kind === "skill" ? "Skill" : "Character"}: ${s.name} ${s.version}${s.author ? ` by ${s.author}` : ""} (id ${s.id}), from @${s.submittedBy}`);
+			console.log(`  ${s.summary}`);
+			if (s.kind === "skill") {
+				const r = readSkillPackage((0, node_fs.readFileSync)((0, node_path.join)(out, s.file)));
+				if (!r.ok) fail(r.error);
+				console.log(`  Signed: ${r.signer ?? "no"} · permissions: ${r.manifest.permissions.join(", ") || "none"} · source: ${s.sourceUrl ?? "(none)"}`);
+				if (r.signer !== s.signer) warn("The package's signer doesn't match the one in submission.json.");
+				const old = readCatalogue(dir).items.find((i) => i.id === s.id);
+				if (old && old.signer && old.signer !== r.signer) warn(`The listed version is signed by a different key (${old.signer}). This may not be the same maker.`);
+			} else console.log(`  Licence: ${s.licence ?? "(none)"}${s.mature ? " · mature content" : ""}`);
+			console.log(`  Pictures: ${s.images.length}`);
+			ok(`Saved to ${out}. Check it (skills: read the source and try it; characters: the licence and the model), then:\n  alfie-skill catalogue add-submission ${dir} ${out}`);
+			return;
+		}
+		case "add-submission": {
+			const from = arg ?? fail("Usage: alfie-skill catalogue add-submission <dir> <submission folder>");
+			const s = readSubmission(from);
+			const c = readCatalogue(dir);
+			const bytes = (0, node_fs.readFileSync)((0, node_path.join)(from, s.file));
+			let rel;
+			let signer = null;
+			let permissions = [];
+			if (s.kind === "skill") {
+				const r = readSkillPackage(bytes);
+				if (!r.ok) fail(r.error);
+				if (r.manifest.id !== s.id || r.manifest.version !== s.version) fail("The package id or version differs from submission.json.");
+				signer = r.signer;
+				permissions = r.manifest.permissions;
+				rel = `skills/${s.id}-${s.version}.alfieskill`;
+			} else {
+				if (bytes.subarray(0, 4).toString("latin1") !== "glTF") fail("The character file isn't a VRM (binary glTF).");
+				rel = `characters/${s.id}-${s.version}.vrm`;
+			}
+			(0, node_fs.mkdirSync)((0, node_path.join)(dir, rel.split("/")[0]), { recursive: true });
+			(0, node_fs.writeFileSync)((0, node_path.join)(dir, rel), bytes);
+			const pics = [];
+			for (const [i, name] of s.images.entries()) {
+				const img = (0, node_fs.readFileSync)((0, node_path.join)(from, name));
+				if (img.length > 2097152 || img[0] !== 137 && img[0] !== 255) fail(`${name}: pictures must be PNG or JPEG, at most 2 MB.`);
+				const p = `images/${s.id}${i ? `-${i + 1}` : ""}${img[0] === 137 ? ".png" : ".jpg"}`;
+				(0, node_fs.mkdirSync)((0, node_path.join)(dir, "images"), { recursive: true });
+				(0, node_fs.writeFileSync)((0, node_path.join)(dir, p), img);
+				pics.push({
+					path: p,
+					sha256: sha(img)
+				});
+			}
+			const item = {
+				id: s.id,
+				kind: s.kind,
+				name: s.name,
+				version: s.version,
+				author: s.author,
+				summary: s.summary,
+				description: s.description,
+				category: s.kind === "character" ? "Characters" : s.category,
+				file: rel,
+				sha256: sha(bytes),
+				size: bytes.length,
+				permissions,
+				signer,
+				licence: s.licence,
+				image: pics[0]?.path,
+				imageSha256: pics[0]?.sha256,
+				gallery: pics.slice(1),
+				tags: s.tags,
+				mature: s.mature,
+				sourceUrl: s.sourceUrl,
+				supportUrl: s.supportUrl,
+				addedAt: (/* @__PURE__ */ new Date()).toISOString()
+			};
+			const was = c.items.findIndex((x) => x.id === item.id);
+			if (was >= 0) c.items[was] = item;
+			else c.items.push(item);
+			writeCatalogue(dir, c);
+			ok(`${was >= 0 ? "Updated" : "Added"} ${item.name} ${item.version} (${item.kind}) from @${s.submittedBy}. Sign the catalogue, push, and close the pull request (don't merge it).`);
 			return;
 		}
 		case "remove": {
@@ -6313,7 +6513,7 @@ function catalogue(pos, flags) {
 			ok(`Signed ${c.items.length} item${c.items.length === 1 ? "" : "s"} with curator key ${keyFingerprint((0, node_crypto.createPublicKey)(key))}. Now push the folder to GitHub.`);
 			return;
 		}
-		default: fail("Usage: alfie-skill catalogue init|add|remove|list|sign <dir> …");
+		default: fail("Usage: alfie-skill catalogue init|add|review|add-submission|remove|list|sign <dir> …");
 	}
 }
 main();

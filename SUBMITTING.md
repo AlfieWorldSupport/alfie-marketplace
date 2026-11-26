@@ -8,15 +8,20 @@ show up in people's Alfie.
 
 1. **Make it.** Skills: follow [MAKING-SKILLS.md](MAKING-SKILLS.md). Characters: a `.vrm` model that you made, or
    whose licence lets you share it.
-2. **Submit it** with a GitHub form (you need a free GitHub account):
-   - [Submit a skill](../../issues/new?template=submit-skill.yml)
-   - [Submit a character](../../issues/new?template=submit-character.yml)
+2. **Submit it.** You need a free GitHub account. Either way works:
+   - **From Alfie (easiest):** open the Marketplace and press **Upload**. Sign in with GitHub, choose your skill
+     (its folder or .alfieskill) or character (.vrm), fill in the form, add pictures, and send it. Characters get a
+     3D preview you can take pictures from. Alfie sends it as a pull request from your account and signs skills for
+     you. Uploads are free items for now; paid items are planned.
+   - **With a GitHub form:** [Submit a skill](../../issues/new?template=submit-skill.yml) or
+     [Submit a character](../../issues/new?template=submit-character.yml).
 3. **Review.** The curator reads the code (skills), checks the licence (characters), tries it, and may ask
-   questions in the issue.
-4. **Listed.** When it's accepted, it's added to the catalogue and the issue is closed with a note. It appears in
+   questions in the pull request or issue.
+4. **Listed.** When it's accepted, it's added to the catalogue and the pull request or issue is closed with a note
+   (pull requests are closed, not merged: the curator adds the item to the signed catalogue). It appears in
    everyone's Marketplace the next time they open or refresh it.
 
-Submitting is free. Not everything is accepted; the issue says why if it isn't.
+Submitting is free. Not everything is accepted; the reply says why if it isn't.
 
 ## Skills
 
