@@ -5980,6 +5980,312 @@ var SkillProcess = class {
 		if (c && c.exitCode === null) c.kill();
 	}
 };
+// src/shared/reviews.ts
+var RELEASE_TAG = "files";
+var STATS_BRANCH = "stats";
+var REVIEWS_LABEL = "reviews";
+var MAX_REVIEW_CHARS = 1e3;
+/** Logins whose reviews issues Alfie trusts (the Action's, and the repository owner's). */
+var TRUSTED_ISSUE_AUTHORS = ["github-actions[bot]", "alfieworldsupport"];
+var assetName = string().regex(/^[a-z0-9][a-z0-9-]{1,59}-[0-9][\w.+-]{0,19}\.(alfieskill|vrm)$/);
+var statsItemSchema = object({
+	/** Downloads of every version. */
+	downloads: number().int().min(0).default(0),
+	/** Average stars (1–5, one decimal), null before anyone rated. */
+	rating: number().min(1).max(5).nullable().default(null),
+	ratings: number().int().min(0).default(0),
+	/** How many gave 1, 2, 3, 4 and 5 stars. */
+	stars: array(number().int().min(0)).length(5).default([
+		0,
+		0,
+		0,
+		0,
+		0
+	]),
+	reviewsIssue: number().int().positive().nullable().default(null),
+	/** Version → release asset name (a copy GitHub counts downloads of). */
+	assets: record(string().max(20), assetName).default({})
+});
+object({
+	format: literal("alfie-stats"),
+	formatVersion: literal(1),
+	updatedAt: string().max(40),
+	items: record(string().regex(/^[a-z0-9][a-z0-9-]{1,59}$/), statsItemSchema)
+});
+var REVIEW_RE = /<!--\s*alfie-review\s+(\{[^]*?\})\s*-->/;
+var ISSUE_RE = /<!--\s*alfie-reviews\s+(\{[^]*?\})\s*-->/;
+/** A review comment's stars, version and text; null for comments Alfie didn't write as a review. */
+function parseReview(body) {
+	const m = REVIEW_RE.exec(body ?? "");
+	if (!m) return null;
+	try {
+		const j = JSON.parse(m[1]);
+		const rating = Number(j.rating);
+		if (!Number.isInteger(rating) || rating < 1 || rating > 5) return null;
+		const text = (body ?? "").replace(REVIEW_RE, "").replace(/^[★☆]{5} \*\*\d\/5\*\*(?: · version [^\n]*)?\n*/, "").replace(/^_No written review\._$/m, "").trim().slice(0, MAX_REVIEW_CHARS);
+		return {
+			rating,
+			version: typeof j.version === "string" ? j.version.slice(0, 20) : "",
+			text
+		};
+	} catch {
+		return null;
+	}
+}
+/** The opening post of a listing's reviews issue. */
+function reviewsIssueText(item) {
+	return {
+		title: `Reviews: ${item.name}`,
+		body: `Ratings and reviews of the ${item.kind} **${item.name}** (\`${item.id}\`) from the Alfie Marketplace.\n\nWrite yours in Alfie (Marketplace → the listing → Write a review), so the stars count. Please keep it about the ${item.kind}: reviews that are rude, off topic or advertising are removed.\n\n<!-- alfie-reviews ${JSON.stringify({ id: item.id })} -->`
+	};
+}
+function parseReviewsIssue(body) {
+	const m = ISSUE_RE.exec(body ?? "");
+	if (!m) return null;
+	try {
+		const id = JSON.parse(m[1]).id;
+		return typeof id === "string" && /^[a-z0-9][a-z0-9-]{1,59}$/.test(id) ? id : null;
+	} catch {
+		return null;
+	}
+}
+/** Reviews on an issue: Alfie's review comments only, one per account (their latest), newest first. */
+function reviewsFrom(comments, me = null) {
+	const latest = /* @__PURE__ */ new Map();
+	for (const c of comments) {
+		const login = c.user?.login;
+		if (!login || c.user?.type === "Bot" || login.endsWith("[bot]")) continue;
+		const r = parseReview(c.body);
+		if (!r) continue;
+		const review = {
+			commentId: c.id,
+			author: login,
+			rating: r.rating,
+			text: r.text,
+			version: r.version,
+			at: c.created_at,
+			edited: !!c.updated_at && c.updated_at !== c.created_at,
+			mine: !!me && login.toLowerCase() === me.toLowerCase()
+		};
+		const key = login.toLowerCase();
+		const was = latest.get(key);
+		if (!was || was.at <= review.at) latest.set(key, review);
+	}
+	return [...latest.values()].sort((a, b) => b.at.localeCompare(a.at));
+}
+function ratingSummary(reviews) {
+	const stars = [
+		0,
+		0,
+		0,
+		0,
+		0
+	];
+	for (const r of reviews) stars[r.rating - 1]++;
+	const n = reviews.length;
+	const sum = reviews.reduce((s, r) => s + r.rating, 0);
+	return {
+		rating: n ? Math.round(sum / n * 10) / 10 : null,
+		ratings: n,
+		stars
+	};
+}
+/** The release asset name for a listed file (its file name: `<id>-<version>.<ext>`), or null. */
+function assetNameFor(file) {
+	const name = file.split("/").pop() ?? "";
+	return assetName.safeParse(name).success ? name : null;
+}
+/** Downloads of every version of an item, from the release's assets. */
+function downloadsOf(id, assets) {
+	const re = new RegExp(`^${id.replace(/-/g, "\\-")}-[0-9][\\w.+-]{0,19}\\.(alfieskill|vrm)$`);
+	return assets.filter((a) => re.test(a.name)).reduce((s, a) => s + (Number(a.download_count) || 0), 0);
+}
+// src/main/marketplace/stats-job.ts
+var notFound = (err) => err?.status === 404;
+var sha256 = (b) => (0, node_crypto.createHash)("sha256").update(b).digest("hex");
+async function all(api, path, max = 50) {
+	const out = [];
+	for (let page = 1; page <= max; page++) {
+		const batch = await api.call("GET", `${path}${path.includes("?") ? "&" : "?"}per_page=100&page=${page}`);
+		out.push(...batch);
+		if (batch.length < 100) break;
+	}
+	return out;
+}
+async function runStatsJob(dir, repo, api, log = () => void 0, now = /* @__PURE__ */ new Date()) {
+	const R = `/repos/${repo}`;
+	const parsed = catalogueSchema.safeParse(JSON.parse((0, node_fs.readFileSync)((0, node_path.join)(dir, "catalogue.json"), "utf8")));
+	if (!parsed.success) throw new Error(`catalogue.json isn't valid: ${parsed.error.issues[0]?.message}`);
+	const items = parsed.data.items;
+	let release;
+	try {
+		release = await api.call("GET", `${R}/releases/tags/${RELEASE_TAG}`);
+	} catch (err) {
+		if (!notFound(err)) throw err;
+		log("Making the \"files\" release");
+		release = await api.call("POST", `${R}/releases`, {
+			tag_name: RELEASE_TAG,
+			name: "Marketplace files",
+			body: "Copies of the files listed in the Alfie Marketplace, kept up to date by the stats Action so GitHub counts downloads. Alfie checks each against catalogue.json."
+		});
+		release.assets = [];
+	}
+	const assets = [...await all(api, `${R}/releases/${release.id}/assets`)];
+	const have = new Set(assets.map((a) => a.name));
+	const assetOf = /* @__PURE__ */ new Map();
+	for (const it of items) {
+		const name = assetNameFor(it.file);
+		if (!name) {
+			log(`${it.id}: ${it.file} has an unusual name, so it isn't copied to the release`);
+			continue;
+		}
+		if (!have.has(name)) {
+			const path = (0, node_path.join)(dir, it.file);
+			if (!(0, node_fs.existsSync)(path)) {
+				log(`${it.id}: ${it.file} is missing from the repository`);
+				continue;
+			}
+			const bytes = (0, node_fs.readFileSync)(path);
+			if (bytes.length !== it.size || sha256(bytes) !== it.sha256) {
+				log(`${it.id}: ${it.file} doesn't match catalogue.json, so it isn't copied`);
+				continue;
+			}
+			log(`Copying ${name} to the release`);
+			await api.upload(release.upload_url, name, bytes);
+			assets.push({
+				name,
+				download_count: 0
+			});
+			have.add(name);
+		}
+		assetOf.set(it.id, name);
+	}
+	await api.call("POST", `${R}/labels`, {
+		name: REVIEWS_LABEL,
+		color: "f9d71c",
+		description: "Ratings and reviews of a marketplace listing"
+	}).catch(() => void 0);
+	const issues = (await all(api, `${R}/issues?labels=${REVIEWS_LABEL}&state=all`)).filter((i) => !i.pull_request && TRUSTED_ISSUE_AUTHORS.includes((i.user?.login ?? "").toLowerCase()));
+	const issueOf = /* @__PURE__ */ new Map();
+	for (const i of issues.sort((a, b) => a.number - b.number)) {
+		const id = parseReviewsIssue(i.body);
+		if (id && !issueOf.has(id)) issueOf.set(id, i.number);
+	}
+	for (const it of items) {
+		if (issueOf.has(it.id)) continue;
+		log(`Opening a reviews issue for ${it.id}`);
+		const t = reviewsIssueText(it);
+		const made = await api.call("POST", `${R}/issues`, {
+			...t,
+			labels: [REVIEWS_LABEL]
+		});
+		issueOf.set(it.id, made.number);
+	}
+	const out = {};
+	for (const it of items) out[it.id] = await itemStats(api, R, it, issueOf.get(it.id) ?? null, assets, assetOf.get(it.id));
+	const stats = {
+		format: "alfie-stats",
+		formatVersion: 1,
+		updatedAt: now.toISOString(),
+		items: out
+	};
+	let before = null;
+	try {
+		const c = await api.call("GET", `${R}/contents/stats.json?ref=${STATS_BRANCH}`);
+		before = JSON.parse(Buffer.from(c.content, "base64").toString("utf8"));
+	} catch (err) {
+		if (!notFound(err)) throw err;
+	}
+	if (before && JSON.stringify(before.items) === JSON.stringify(stats.items)) {
+		log("No change in the numbers");
+		return {
+			stats,
+			written: false
+		};
+	}
+	const text = `${JSON.stringify(stats, null, 2)}\n`;
+	const blob = await api.call("POST", `${R}/git/blobs`, {
+		content: Buffer.from(text).toString("base64"),
+		encoding: "base64"
+	});
+	const tree = await api.call("POST", `${R}/git/trees`, { tree: [{
+		path: "stats.json",
+		mode: "100644",
+		type: "blob",
+		sha: blob.sha
+	}] });
+	const commit = await api.call("POST", `${R}/git/commits`, {
+		message: `Stats ${stats.updatedAt}`,
+		tree: tree.sha,
+		parents: []
+	});
+	try {
+		await api.call("PATCH", `${R}/git/refs/heads/${STATS_BRANCH}`, {
+			sha: commit.sha,
+			force: true
+		});
+	} catch (err) {
+		if (!notFound(err) && err?.status !== 422) throw err;
+		await api.call("POST", `${R}/git/refs`, {
+			ref: `refs/heads/${STATS_BRANCH}`,
+			sha: commit.sha
+		});
+	}
+	log(`Wrote stats.json for ${items.length} listing${items.length === 1 ? "" : "s"}`);
+	return {
+		stats,
+		written: true
+	};
+}
+async function itemStats(api, R, it, issue, assets, asset) {
+	const reviews = issue ? reviewsFrom(await all(api, `${R}/issues/${issue}/comments`)) : [];
+	return {
+		downloads: downloadsOf(it.id, assets),
+		...ratingSummary(reviews),
+		reviewsIssue: issue,
+		assets: asset ? { [it.version]: asset } : {}
+	};
+}
+/** The real GitHub API with the Action's token. */
+function githubStatsApi(token, apiBase = "https://api.github.com") {
+	const headers = {
+		Authorization: `Bearer ${token}`,
+		Accept: "application/vnd.github+json",
+		"X-GitHub-Api-Version": "2022-11-28",
+		"User-Agent": "alfie-stats"
+	};
+	const check = async (res) => {
+		const text = await res.text();
+		if (!res.ok) throw Object.assign(/* @__PURE__ */ new Error(`GitHub ${res.status}: ${text.slice(0, 300)}`), { status: res.status });
+		return text ? JSON.parse(text) : null;
+	};
+	return {
+		async call(method, path, body) {
+			const url = /^https?:/.test(path) ? path : `${apiBase}${path}`;
+			const res = await fetch(url, {
+				method,
+				headers: {
+					...headers,
+					...body !== void 0 ? { "Content-Type": "application/json" } : {}
+				},
+				body: body !== void 0 ? JSON.stringify(body) : void 0
+			});
+			return await check(res);
+		},
+		async upload(uploadUrl, name, bytes) {
+			const url = `${uploadUrl.replace(/\{.*\}$/, "")}?name=${encodeURIComponent(name)}`;
+			const res = await fetch(url, {
+				method: "POST",
+				headers: {
+					...headers,
+					"Content-Type": "application/octet-stream"
+				},
+				body: new Uint8Array(bytes)
+			});
+			await check(res);
+		}
+	};
+}
 // sdk/src/cli.ts
 /**
 * alfie-skill: the developer kit's command-line tool (PLATFORM_PLAN.md part 5).
@@ -6242,6 +6548,7 @@ Marketplace curator:
   catalogue remove <dir> <id>                   take an item out
   catalogue list <dir>                          show what's in it
   catalogue sign <dir> --key <curator key>      sign it (do this last, after every change)
+  catalogue stats <dir>                         downloads, reviews and stats.json (the GitHub Action runs this)
 
 Guide: https://github.com/AlfieWorldSupport/alfie-marketplace/blob/main/MAKING-SKILLS.md (submit: SUBMITTING.md there)`);
 			if (cmd && cmd !== "help" && cmd !== "--help") process.exit(1);
@@ -6513,7 +6820,13 @@ function catalogue(pos, flags) {
 			ok(`Signed ${c.items.length} item${c.items.length === 1 ? "" : "s"} with curator key ${keyFingerprint((0, node_crypto.createPublicKey)(key))}. Now push the folder to GitHub.`);
 			return;
 		}
-		default: fail("Usage: alfie-skill catalogue init|add|review|add-submission|remove|list|sign <dir> …");
+		case "stats": {
+			const token = process.env.GITHUB_TOKEN || fail("catalogue stats needs GITHUB_TOKEN (it runs in the GitHub Action).");
+			const repo = process.env.GITHUB_REPOSITORY || fail("catalogue stats needs GITHUB_REPOSITORY (owner/name).");
+			readCatalogue(dir);
+			return runStatsJob(dir, repo, githubStatsApi(token, process.env.GITHUB_API_URL), (line) => console.log(`  ${line}`)).then((r) => ok(r.written ? "stats.json updated." : "stats.json already up to date."), (err) => fail(`Stats failed: ${err?.message ?? String(err)}`));
+		}
+		default: fail("Usage: alfie-skill catalogue init|add|review|add-submission|remove|list|sign|stats <dir> …");
 	}
 }
 main();

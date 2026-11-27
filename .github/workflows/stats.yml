@@ -1,0 +1,38 @@
+# Keeps the Marketplace's numbers up to date: copies listed files to the "files" release (so GitHub counts
+# downloads), opens a reviews issue for each listing, and writes stats.json (downloads and stars) to the "stats"
+# branch, which Alfie reads. It only reads review comments as data; it never runs anything from them.
+name: Marketplace stats
+
+on:
+  push:
+    branches: [main]
+  issue_comment:
+    types: [created, edited, deleted]
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: marketplace-stats
+  cancel-in-progress: false
+
+jobs:
+  stats:
+    # Comments elsewhere (uploads, reports) don't change any numbers.
+    if: github.event_name != 'issue_comment' || contains(github.event.issue.labels.*.name, 'reviews')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/alfie-skill.cjs catalogue stats .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

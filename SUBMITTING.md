@@ -58,6 +58,13 @@ where it stands: **In review**, **Needs changes** (with the curator's reply), **
 reason). **Send changes** opens the Upload form filled in from your earlier upload, pictures included: choose the file
 again, change what was asked, and send. The old pull request is closed for you.
 
+## Downloads and reviews
+
+Once your item is live, its listing shows how many times it has been downloaded and its star rating. People who
+installed it can rate it and write a review in the Marketplace (signed in with GitHub). Your numbers show in **My
+uploads** too, and every review is a comment on the listing's "Reviews:" issue on this repository, so you can reply
+there.
+
 ## Updates and removal
 
 - **Update:** in My uploads, **Upload a new version** on a Live item fills the form in with the next version number;
