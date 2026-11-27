@@ -1,0 +1,10 @@
+[
+  { "tool": "time_in", "args": { "places": ["Tokyo", "New York", "Europe/Paris"] }, "expect": { "contains": "Asia/Tokyo" } },
+  { "tool": "time_in", "args": { "places": ["Atlantis"] }, "expect": { "error": true } },
+  { "tool": "convert_time", "args": { "time": "3pm", "date": "2026-07-01", "from": "London", "to": ["Tokyo"] }, "expect": { "contains": "Tokyo: **Wed, 1 Jul 2026, 23:00**" } },
+  { "tool": "convert_time", "args": { "time": "09:00", "date": "2026-01-15", "from": "New York", "to": ["Sydney"] }, "expect": { "contains": "Fri, 16 Jan 2026, 01:00" } },
+  { "tool": "convert_time", "args": { "time": "12:00", "date": "2026-03-01", "from": "Kathmandu", "to": ["UTC"] }, "expect": { "contains": "UTC+5:45" } },
+  { "tool": "convert_time", "args": { "time": "25:00", "from": "London", "to": ["Paris"] }, "expect": { "error": true } },
+  { "tool": "meeting_times", "args": { "places": ["London", "New York"], "date": "2026-06-10" }, "expect": { "contains": "London: 14:00–18:00" } },
+  { "tool": "meeting_times", "args": { "places": ["London", "Auckland", "Honolulu"], "date": "2026-06-10" }, "expect": { "contains": "No half hour" } }
+]

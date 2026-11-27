@@ -1,0 +1,11 @@
+[
+  { "tool": "convert_colour", "args": { "colour": "teal" }, "expect": { "contains": "#008080 · rgb(0, 128, 128) · hsl(180, 100%, 25%)" } },
+  { "tool": "convert_colour", "args": { "colour": "#f00" }, "expect": { "contains": "CSS name: red" } },
+  { "tool": "convert_colour", "args": { "colour": "hsl(210, 100%, 56%)" }, "expect": { "contains": "rgb(31, 143, 255)" } },
+  { "tool": "convert_colour", "args": { "colour": "rgb(30, 144, 255)" }, "expect": { "contains": "dodgerblue" } },
+  { "tool": "convert_colour", "args": { "colour": "sparkly" }, "expect": { "error": true } },
+  { "tool": "contrast_check", "args": { "text": "black", "background": "white" }, "expect": { "contains": "**21:1**" } },
+  { "tool": "contrast_check", "args": { "text": "#777", "background": "#fff" }, "expect": { "contains": "Normal text: AA fails" } },
+  { "tool": "make_palette", "args": { "colour": "red", "kind": "complementary" }, "expect": { "contains": "+180°: #00ffff" } },
+  { "tool": "make_palette", "args": { "colour": "#3366cc", "kind": "shades" }, "expect": { "contains": "base: #3366cc" } }
+]

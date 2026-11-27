@@ -1,0 +1,15 @@
+[
+  { "tool": "text_stats", "args": { "text": "The cat sat. The cat ran! Didn't it?\n\nA new paragraph." }, "expect": { "contains": "Words: **11**" } },
+  { "tool": "text_stats", "args": { "text": "The cat sat. The cat ran! Didn't it?\n\nA new paragraph." }, "expect": { "contains": "Sentences: 4, paragraphs: 2" } },
+  { "tool": "change_case", "args": { "text": "the lord of the rings: the return", "style": "title" }, "expect": { "contains": "The Lord of the Rings: The Return" } },
+  { "tool": "change_case", "args": { "text": "Hello wide World", "style": "camel" }, "expect": { "contains": "helloWideWorld" } },
+  { "tool": "change_case", "args": { "text": "myVariableName", "style": "snake" }, "expect": { "contains": "my_variable_name" } },
+  { "tool": "change_case", "args": { "text": "some-kebab text", "style": "constant" }, "expect": { "contains": "SOME_KEBAB_TEXT" } },
+  { "tool": "make_slug", "args": { "text": "Café Menu: Summer 2026!" }, "expect": { "contains": "cafe-menu-summer-2026" } },
+  { "tool": "make_slug", "args": { "text": "!!!" }, "expect": { "error": true } },
+  { "tool": "tidy_lines", "args": { "text": "pear\nApple\n\napple\nbanana", "sort": "az", "dedupe": true, "ignore_case": true, "remove_blank": true }, "expect": { "contains": "Apple\nbanana\npear" } },
+  { "tool": "tidy_lines", "args": { "text": "b\na", "sort": "az", "number": true }, "expect": { "contains": "1. a\n2. b" } },
+  { "tool": "find_replace", "args": { "text": "cat catalog Cat", "find": "cat", "replace": "dog", "whole_word": true, "ignore_case": true }, "expect": { "contains": "dog catalog dog" } },
+  { "tool": "find_replace", "args": { "text": "2026-11-27", "find": "(\\d+)-(\\d+)-(\\d+)", "replace": "$3/$2/$1", "regex": true }, "expect": { "contains": "27/11/2026" } },
+  { "tool": "find_replace", "args": { "text": "abc", "find": "(", "replace": "x", "regex": true }, "expect": { "error": true } }
+]

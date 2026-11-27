@@ -1,0 +1,67 @@
+{
+  "id": "dice-and-chance",
+  "name": "Dice and chance",
+  "version": "1.0.0",
+  "author": "Alfie",
+  "description": "Rolls dice (like 2d6+3 or 4d6 keep 3), flips coins, picks something at random from a list, shuffles lists and draws playing cards. Fair randomness from your computer, for board games, role-playing and deciding where to eat.",
+  "entry": "index.js",
+  "permissions": [],
+  "tools": [
+    {
+      "name": "roll_dice",
+      "description": "Roll dice written in dice notation, e.g. d20, 2d6+3, 4d6k3 (keep the highest 3), 2d20kl1 (keep the lowest, disadvantage), d%, 3d6-1. Several rolls can be separated with commas.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": { "dice": { "type": "string", "description": "Dice notation, e.g. 2d6+3" } },
+        "required": ["dice"]
+      }
+    },
+    {
+      "name": "flip_coin",
+      "description": "Flip one or more coins.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": { "count": { "type": "integer", "minimum": 1, "maximum": 100, "description": "How many coins (default 1)" } }
+      }
+    },
+    {
+      "name": "pick_random",
+      "description": "Pick one or more things at random from a list (without repeats), or shuffle the whole list.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "options": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 500 },
+          "count": { "type": "integer", "minimum": 1, "description": "How many to pick (default 1)" },
+          "shuffle": { "type": "boolean", "description": "Return the whole list in random order instead" }
+        },
+        "required": ["options"]
+      }
+    },
+    {
+      "name": "random_number",
+      "description": "A random whole number between min and max (both included).",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": { "min": { "type": "integer" }, "max": { "type": "integer" } },
+        "required": ["min", "max"]
+      }
+    },
+    {
+      "name": "draw_cards",
+      "description": "Draw playing cards from a freshly shuffled 52-card deck (optionally with two jokers).",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "count": { "type": "integer", "minimum": 1, "maximum": 54, "description": "How many cards (default 1)" },
+          "jokers": { "type": "boolean" }
+        }
+      }
+    }
+  ],
+  "prompt": "Never make up a roll, flip or random pick yourself: always use these tools so the result is really random, and tell the user the result plainly."
+}

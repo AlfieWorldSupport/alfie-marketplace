@@ -1,0 +1,14 @@
+[
+  { "tool": "roll_dice", "args": { "dice": "2d6+3" }, "expect": { "contains": "2d6+3: **" } },
+  { "tool": "roll_dice", "args": { "dice": "4d6k3, d20" }, "expect": { "contains": "d20: **" } },
+  { "tool": "roll_dice", "args": { "dice": "d%" }, "expect": { "contains": "d%: **" } },
+  { "tool": "roll_dice", "args": { "dice": "5" }, "expect": { "contains": "**5**" } },
+  { "tool": "roll_dice", "args": { "dice": "banana" }, "expect": { "error": true } },
+  { "tool": "roll_dice", "args": { "dice": "999d6" }, "expect": { "error": true } },
+  { "tool": "flip_coin", "args": { "count": 10 }, "expect": { "contains": "Heads: " } },
+  { "tool": "pick_random", "args": { "options": ["pizza"] }, "expect": { "contains": "**pizza**" } },
+  { "tool": "pick_random", "args": { "options": ["a", "b", "c"], "shuffle": true }, "expect": { "contains": "3. " } },
+  { "tool": "pick_random", "args": { "options": [] }, "expect": { "error": true } },
+  { "tool": "random_number", "args": { "min": 7, "max": 7 }, "expect": { "contains": "**7**" } },
+  { "tool": "draw_cards", "args": { "count": 5 }, "expect": { "contains": "  " } }
+]

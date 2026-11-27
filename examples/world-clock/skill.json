@@ -1,0 +1,52 @@
+{
+  "id": "world-clock",
+  "name": "World clock",
+  "version": "1.0.0",
+  "author": "Alfie",
+  "description": "What time it is anywhere in the world, converting a time between cities (\"3pm in London is what in Tokyo?\"), and finding a meeting time that suits several places. Works offline with your computer's own time zone data.",
+  "entry": "index.js",
+  "permissions": [],
+  "tools": [
+    {
+      "name": "time_in",
+      "description": "The current date and time in one or more places. Accepts city names (Tokyo, New York, Sydney…), countries with one time zone, or IANA zones like Europe/Paris.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": { "places": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 20 } },
+        "required": ["places"]
+      }
+    },
+    {
+      "name": "convert_time",
+      "description": "Convert a date and time in one place to other places, e.g. 15:00 in London to Tokyo and Los Angeles.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "time": { "type": "string", "description": "24-hour HH:MM or e.g. 3pm / 9:30am" },
+          "date": { "type": "string", "description": "YYYY-MM-DD (default today there)" },
+          "from": { "type": "string", "description": "Place the time is in" },
+          "to": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 20 }
+        },
+        "required": ["time", "from", "to"]
+      }
+    },
+    {
+      "name": "meeting_times",
+      "description": "Hours of a day that fall inside working hours (default 09:00–18:00) in every place given.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "places": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 10 },
+          "date": { "type": "string", "description": "YYYY-MM-DD (default today)" },
+          "start_hour": { "type": "integer", "minimum": 0, "maximum": 23 },
+          "end_hour": { "type": "integer", "minimum": 1, "maximum": 24 }
+        },
+        "required": ["places"]
+      }
+    }
+  ],
+  "prompt": "Use these tools for any question about the time in another place or converting between time zones, rather than working out offsets yourself (daylight saving makes that error-prone)."
+}

@@ -1,0 +1,44 @@
+{
+  "id": "colour-tools",
+  "name": "Colour tools",
+  "version": "1.0.0",
+  "author": "Alfie",
+  "description": "Converts colours between hex, RGB and HSL (and CSS colour names), checks text contrast against the WCAG accessibility guidelines, and makes palettes: tints and shades, complementary, triadic and analogous colours. Handy for design and web work.",
+  "entry": "index.js",
+  "permissions": [],
+  "tools": [
+    {
+      "name": "convert_colour",
+      "description": "Show a colour as hex, RGB and HSL, and its nearest CSS colour name. Accepts #rgb, #rrggbb, rgb(…), hsl(…) or a CSS name like teal.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": { "colour": { "type": "string" } },
+        "required": ["colour"]
+      }
+    },
+    {
+      "name": "contrast_check",
+      "description": "The contrast ratio between text and background colours, and whether it passes WCAG AA and AAA for normal and large text.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": { "text": { "type": "string" }, "background": { "type": "string" } },
+        "required": ["text", "background"]
+      }
+    },
+    {
+      "name": "make_palette",
+      "description": "Make a palette from a colour: shades (lighter to darker), complementary, triadic, analogous, or split (split-complementary).",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "colour": { "type": "string" },
+          "kind": { "type": "string", "enum": ["shades", "complementary", "triadic", "analogous", "split"] }
+        },
+        "required": ["colour", "kind"]
+      }
+    }
+  ]
+}

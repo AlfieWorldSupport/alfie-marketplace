@@ -1,0 +1,9 @@
+[
+  { "tool": "make_password", "args": {}, "expect": { "contains": "bits of randomness" } },
+  { "tool": "make_password", "args": { "length": 12, "symbols": false, "count": 3 }, "expect": { "contains": "`" } },
+  { "tool": "make_passphrase", "args": { "words": 4, "separator": " " }, "expect": { "contains": "bits of randomness" } },
+  { "tool": "make_pin", "args": { "digits": 4 }, "expect": { "contains": "`" } },
+  { "tool": "check_strength", "args": { "password": "password123" }, "expect": { "contains": "very weak" } },
+  { "tool": "check_strength", "args": { "password": "tG7#qL2!vRm9@xWp4$zK" }, "expect": { "contains": "very strong" } },
+  { "tool": "check_strength", "args": { "password": "" }, "expect": { "error": true } }
+]

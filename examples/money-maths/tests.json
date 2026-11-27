@@ -1,0 +1,14 @@
+[
+  { "tool": "split_bill", "args": { "total": 100, "people": 3, "tip_percent": 15, "currency": "$" }, "expect": { "contains": "Each of 3: **$38.33**" } },
+  { "tool": "split_bill", "args": { "total": 100, "people": 3, "tip_percent": 15, "currency": "$" }, "expect": { "contains": "1 person pays $38.34" } },
+  { "tool": "split_bill", "args": { "total": 50, "people": 2, "currency": "EUR" }, "expect": { "contains": "25.00 EUR" } },
+  { "tool": "percent", "args": { "mode": "of", "a": 15, "b": 80 }, "expect": { "contains": "**12**" } },
+  { "tool": "percent", "args": { "mode": "change", "a": 80, "b": 100 }, "expect": { "contains": "+25%" } },
+  { "tool": "percent", "args": { "mode": "discount", "a": 30, "b": 50 }, "expect": { "contains": "**35**" } },
+  { "tool": "percent", "args": { "mode": "change", "a": 0, "b": 5 }, "expect": { "error": true } },
+  { "tool": "loan_payment", "args": { "amount": 200000, "annual_rate_percent": 5, "years": 25, "currency": "£" }, "expect": { "contains": "**£1,169.18**" } },
+  { "tool": "loan_payment", "args": { "amount": 1200, "annual_rate_percent": 0, "years": 1 }, "expect": { "contains": "**100.00**" } },
+  { "tool": "savings_growth", "args": { "start": 1000, "monthly_deposit": 100, "annual_rate_percent": 0, "years": 2 }, "expect": { "contains": "**3,400.00**" } },
+  { "tool": "sales_tax", "args": { "price": 120, "rate_percent": 20, "includes_tax": true }, "expect": { "contains": "Before tax: **100.00**" } },
+  { "tool": "sales_tax", "args": { "price": 100, "rate_percent": 8.25, "currency": "$" }, "expect": { "contains": "With tax: **$108.25**" } }
+]

@@ -1,0 +1,80 @@
+{
+  "id": "text-tools",
+  "name": "Text tools",
+  "version": "1.0.0",
+  "author": "Alfie",
+  "description": "Counts words, characters and sentences with reading and speaking time, changes text case (Title Case, snake_case, camelCase…), makes URL slugs, sorts and de-duplicates lines, and finds and replaces. Exact answers instead of guesses.",
+  "entry": "index.js",
+  "permissions": [],
+  "tools": [
+    {
+      "name": "text_stats",
+      "description": "Exact counts for a piece of text: words, characters (with and without spaces), sentences, paragraphs, lines, reading and speaking time, and the most used words.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": { "text": { "type": "string" } },
+        "required": ["text"]
+      }
+    },
+    {
+      "name": "change_case",
+      "description": "Change the case of text: upper, lower, title, sentence, camel, pascal, snake, kebab, constant, or alternating.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "style": { "type": "string", "enum": ["upper", "lower", "title", "sentence", "camel", "pascal", "snake", "kebab", "constant", "alternating"] }
+        },
+        "required": ["text", "style"]
+      }
+    },
+    {
+      "name": "make_slug",
+      "description": "Turn a title into a URL-friendly slug, e.g. \"Café Menu: Summer 2026!\" → cafe-menu-summer-2026.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": { "text": { "type": "string" }, "max_length": { "type": "integer", "minimum": 10, "maximum": 200 } },
+        "required": ["text"]
+      }
+    },
+    {
+      "name": "tidy_lines",
+      "description": "Work on a list with one item per line: sort (A–Z, Z–A, by length, or numbers), remove duplicates, remove blank lines, trim, reverse or number them.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "sort": { "type": "string", "enum": ["none", "az", "za", "length", "numeric"] },
+          "dedupe": { "type": "boolean" },
+          "ignore_case": { "type": "boolean" },
+          "remove_blank": { "type": "boolean" },
+          "reverse": { "type": "boolean" },
+          "number": { "type": "boolean" }
+        },
+        "required": ["text"]
+      }
+    },
+    {
+      "name": "find_replace",
+      "description": "Find and replace in text and say how many were changed. Plain text by default; regex: true for a regular expression.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "find": { "type": "string" },
+          "replace": { "type": "string" },
+          "ignore_case": { "type": "boolean" },
+          "whole_word": { "type": "boolean" },
+          "regex": { "type": "boolean" }
+        },
+        "required": ["text", "find", "replace"]
+      }
+    }
+  ],
+  "prompt": "Use text_stats whenever the user wants a word or character count; don't estimate it yourself."
+}

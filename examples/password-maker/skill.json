@@ -1,0 +1,59 @@
+{
+  "id": "password-maker",
+  "name": "Password maker",
+  "version": "1.0.0",
+  "author": "Alfie",
+  "description": "Makes strong random passwords, easy-to-type passphrases and PINs on your own computer, and says how strong a password is (without sending it anywhere). Nothing is saved or remembered.",
+  "entry": "index.js",
+  "permissions": [],
+  "tools": [
+    {
+      "name": "make_password",
+      "description": "Make one or more random passwords.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "length": { "type": "integer", "minimum": 8, "maximum": 128, "description": "Characters (default 20)" },
+          "symbols": { "type": "boolean", "description": "Include symbols like !#% (default true)" },
+          "avoid_lookalikes": { "type": "boolean", "description": "Leave out characters that look alike: 0 O o 1 l I (default true)" },
+          "count": { "type": "integer", "minimum": 1, "maximum": 10 }
+        }
+      }
+    },
+    {
+      "name": "make_passphrase",
+      "description": "Make a passphrase of random common English words, e.g. maple-rocket-sunny-otter-42. Easier to type and remember.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "words": { "type": "integer", "minimum": 3, "maximum": 12, "description": "How many words (default 5)" },
+          "separator": { "type": "string", "maxLength": 3, "description": "Between words (default -)" },
+          "add_number": { "type": "boolean", "description": "Add a number at the end (default true)" },
+          "capitalise": { "type": "boolean" }
+        }
+      }
+    },
+    {
+      "name": "make_pin",
+      "description": "Make a random numeric PIN.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": { "digits": { "type": "integer", "minimum": 4, "maximum": 12, "description": "Default 6" } }
+      }
+    },
+    {
+      "name": "check_strength",
+      "description": "Estimate how strong a password is and why. Works offline; the password isn't stored.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": { "password": { "type": "string" } },
+        "required": ["password"]
+      }
+    }
+  ],
+  "prompt": "Show generated passwords exactly as returned, in a code span. Don't repeat a password the user asks you to check back to them, and suggest a password manager for storing them."
+}

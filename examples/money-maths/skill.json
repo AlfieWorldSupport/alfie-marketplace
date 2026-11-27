@@ -1,0 +1,87 @@
+{
+  "id": "money-maths",
+  "name": "Money maths",
+  "version": "1.0.0",
+  "author": "Alfie",
+  "description": "Exact everyday money sums: splitting a bill with tip, percentages and discounts, loan and mortgage repayments, savings growth with regular deposits, and adding or removing sales tax or VAT. Calculators only: it doesn't give financial advice.",
+  "entry": "index.js",
+  "permissions": [],
+  "tools": [
+    {
+      "name": "split_bill",
+      "description": "Split a bill between people, with an optional tip percentage, rounded to cents.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "number", "minimum": 0 },
+          "people": { "type": "integer", "minimum": 1, "maximum": 1000 },
+          "tip_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+          "currency": { "type": "string", "description": "Symbol or code, e.g. $ or EUR (optional)" }
+        },
+        "required": ["total", "people"]
+      }
+    },
+    {
+      "name": "percent",
+      "description": "Percentage sums. mode 'of': X% of a value. 'change': % change from a value to another. 'discount': a price after X% off. 'is_what_percent': value as a % of another.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "mode": { "type": "string", "enum": ["of", "change", "discount", "is_what_percent"] },
+          "a": { "type": "number", "description": "of/discount: the percentage. change: the old value. is_what_percent: the part" },
+          "b": { "type": "number", "description": "of/discount: the value or price. change: the new value. is_what_percent: the whole" }
+        },
+        "required": ["mode", "a", "b"]
+      }
+    },
+    {
+      "name": "loan_payment",
+      "description": "Monthly repayment, total paid and total interest for a loan or mortgage at a fixed yearly interest rate.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "amount": { "type": "number", "minimum": 0 },
+          "annual_rate_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+          "years": { "type": "number", "minimum": 0.1, "maximum": 50 },
+          "currency": { "type": "string" }
+        },
+        "required": ["amount", "annual_rate_percent", "years"]
+      }
+    },
+    {
+      "name": "savings_growth",
+      "description": "What savings grow to with compound interest (monthly) and optional regular monthly deposits.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "start": { "type": "number", "minimum": 0 },
+          "monthly_deposit": { "type": "number", "minimum": 0 },
+          "annual_rate_percent": { "type": "number", "minimum": -20, "maximum": 50 },
+          "years": { "type": "number", "minimum": 0.1, "maximum": 80 },
+          "currency": { "type": "string" }
+        },
+        "required": ["start", "annual_rate_percent", "years"]
+      }
+    },
+    {
+      "name": "sales_tax",
+      "description": "Add tax to a price (net → gross) or take it out of a price that already includes it (gross → net).",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "price": { "type": "number", "minimum": 0 },
+          "rate_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+          "includes_tax": { "type": "boolean", "description": "true if the price already includes the tax" },
+          "currency": { "type": "string" }
+        },
+        "required": ["price", "rate_percent"]
+      }
+    }
+  ],
+  "prompt": "Use these for money arithmetic instead of working it out yourself. They're calculators, not advice: don't recommend loans, investments or products."
+}
