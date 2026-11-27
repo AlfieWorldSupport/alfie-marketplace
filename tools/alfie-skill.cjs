@@ -120,7 +120,7 @@ function mergeDefs(...defs) {
 function esc(str) {
 	return JSON.stringify(str);
 }
-function slugify(input) {
+function slugify$1(input) {
 	return input.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "");
 }
 var captureStackTrace = "captureStackTrace" in Error ? Error.captureStackTrace : (..._args) => {};
@@ -3622,7 +3622,7 @@ function _toUpperCase() {
 }
 // @__NO_SIDE_EFFECTS__
 function _slugify() {
-	return /* @__PURE__ */ _overwrite((input) => slugify(input));
+	return /* @__PURE__ */ _overwrite((input) => slugify$1(input));
 }
 // @__NO_SIDE_EFFECTS__
 function _array(Class, element, params) {
@@ -5751,14 +5751,20 @@ var MARKET_CATEGORIES = [
 var safePath = string().max(200).regex(/^[A-Za-z0-9][\w./-]*$/, "a relative path").refine((p) => !p.split("/").includes(".."), "no ..");
 var catalogueItemSchema = object({
 	id: string().regex(/^[a-z0-9][a-z0-9-]{1,59}$/),
-	kind: _enum(["skill", "character"]),
+	/** v0.26: voices and personalities (listed under `extras`, which older versions skip). */
+	kind: _enum([
+		"skill",
+		"character",
+		"voice",
+		"personality"
+	]),
 	name: string().min(1).max(60),
 	version: string().max(20),
 	author: string().max(80).default(""),
 	summary: string().max(160),
 	description: string().max(2e3).default(""),
 	category: _enum(MARKET_CATEGORIES).default("Other"),
-	/** The file to download (.alfieskill or .vrm), relative to the catalogue. */
+	/** The file to download (.alfieskill, .vrm, or a voice/personality .json), relative to the catalogue. */
 	file: safePath,
 	sha256: string().regex(/^[a-f0-9]{64}$/),
 	size: number().int().positive().max(157286400),
@@ -5789,13 +5795,32 @@ var catalogueSchema = object({
 	formatVersion: literal(1),
 	name: string().max(80).default("Alfie Marketplace"),
 	updatedAt: string().max(40),
-	items: array(catalogueItemSchema).max(1e3)
+	items: array(unknown()).max(1e3).transform(knownItems),
+	/** v0.26: voices and personalities. Listed apart from `items` so versions of Alfie before 0.26 skip them. */
+	extras: array(unknown()).max(1e3).default([]).transform(knownItems)
 });
+/**
+* Items this version knows how to show: an item of a kind added later (or a broken one) is skipped, rather than
+* the whole catalogue being refused.
+*/
+function knownItems(list) {
+	const out = [];
+	for (const raw of list) {
+		const r = catalogueItemSchema.safeParse(raw);
+		if (r.success) out.push(r.data);
+	}
+	return out;
+}
 /** submission.json, as it's written into the pull request (and read back by `catalogue add-submission`). */
 var submissionSchema = object({
 	format: literal("alfie-submission"),
 	formatVersion: literal(1),
-	kind: _enum(["skill", "character"]),
+	kind: _enum([
+		"skill",
+		"character",
+		"voice",
+		"personality"
+	]),
 	id: string().regex(/^[a-z0-9][a-z0-9-]{1,59}$/),
 	name: string().min(1).max(60),
 	version: string().min(1).max(20),
@@ -5820,6 +5845,20 @@ var submissionSchema = object({
 	submittedAt: string().max(40),
 	app: string().max(20)
 });
+/** A catalogue id from a name: lower-case words joined by dashes. */
+function slugify(name, prefix = "") {
+	const body = name.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+	return `${prefix}${body.length >= 2 ? body : `${body ? `${body}-` : ""}${nameHash(name)}`}`.slice(0, 60).replace(/-+$/, "");
+}
+/** A short, stable code for a name (FNV-1a, base 36). */
+function nameHash(s) {
+	let h = 2166136261;
+	for (const ch of s.normalize("NFC")) {
+		h ^= ch.codePointAt(0);
+		h = Math.imul(h, 16777619) >>> 0;
+	}
+	return h.toString(36).padStart(6, "0");
+}
 // src/main/skills/skill-process.ts
 /**
 * The small program that hosts one skill: loads its entry file, answers tool calls over stdin/stdout (one
@@ -5987,7 +6026,7 @@ var REVIEWS_LABEL = "reviews";
 var MAX_REVIEW_CHARS = 1e3;
 /** Logins whose reviews issues Alfie trusts (the Action's, and the repository owner's). */
 var TRUSTED_ISSUE_AUTHORS = ["github-actions[bot]", "alfieworldsupport"];
-var assetName = string().regex(/^[a-z0-9][a-z0-9-]{1,59}-[0-9][\w.+-]{0,19}\.(alfieskill|vrm)$/);
+var assetName = string().regex(/^[a-z0-9][a-z0-9-]{1,59}-[0-9][\w.+-]{0,19}\.(alfieskill|vrm|json)$/);
 var statsItemSchema = object({
 	/** Downloads of every version. */
 	downloads: number().int().min(0).default(0),
@@ -6097,7 +6136,7 @@ function assetNameFor(file) {
 }
 /** Downloads of every version of an item, from the release's assets. */
 function downloadsOf(id, assets) {
-	const re = new RegExp(`^${id.replace(/-/g, "\\-")}-[0-9][\\w.+-]{0,19}\\.(alfieskill|vrm)$`);
+	const re = new RegExp(`^${id.replace(/-/g, "\\-")}-[0-9][\\w.+-]{0,19}\\.(alfieskill|vrm|json)$`);
 	return assets.filter((a) => re.test(a.name)).reduce((s, a) => s + (Number(a.download_count) || 0), 0);
 }
 // src/main/marketplace/stats-job.ts
@@ -6116,7 +6155,7 @@ async function runStatsJob(dir, repo, api, log = () => void 0, now = /* @__PURE_
 	const R = `/repos/${repo}`;
 	const parsed = catalogueSchema.safeParse(JSON.parse((0, node_fs.readFileSync)((0, node_path.join)(dir, "catalogue.json"), "utf8")));
 	if (!parsed.success) throw new Error(`catalogue.json isn't valid: ${parsed.error.issues[0]?.message}`);
-	const items = parsed.data.items;
+	const items = [...parsed.data.items, ...parsed.data.extras];
 	let release;
 	try {
 		release = await api.call("GET", `${R}/releases/tags/${RELEASE_TAG}`);
@@ -6286,6 +6325,195 @@ function githubStatsApi(token, apiBase = "https://api.github.com") {
 		}
 	};
 }
+// src/shared/voice.ts
+/** Prebuilt voices offered by each cloud engine (first = default). */
+var CLOUD_VOICES = {
+	gemini: [
+		"Leda",
+		"Kore",
+		"Aoede",
+		"Zephyr",
+		"Puck",
+		"Callirrhoe",
+		"Autonoe",
+		"Despina",
+		"Erinome",
+		"Laomedeia",
+		"Achernar",
+		"Sulafat",
+		"Vindemiatrix",
+		"Charon",
+		"Fenrir",
+		"Orus"
+	],
+	openai: [
+		"coral",
+		"shimmer",
+		"nova",
+		"sage",
+		"ballad",
+		"alloy",
+		"verse",
+		"marin",
+		"ash",
+		"echo",
+		"fable",
+		"onyx",
+		"cedar"
+	]
+};
+var PERSONALITY_IDS = [
+	{
+		id: "friendly",
+		label: "Friendly & affectionate",
+		description: "Warm, kind and encouraging. The default.",
+		example: "You got it working? That's amazing, I knew you would! 💜",
+		prompt: "Warm, affectionate and encouraging. Speaks casually and kindly, like a close friend who is genuinely happy to help. Gently celebrates the user's wins and is supportive when things go wrong."
+	},
+	{
+		id: "playful",
+		label: "Playful & mischievous",
+		description: "Teasing, jokey, full of energy.",
+		example: "Another spreadsheet? Bold of you to assume I won’t judge your column names.",
+		prompt: "Playful and a little mischievous. Likes light teasing, puns and playful banter, but always stays helpful and never mean. Keeps the mood fun."
+	},
+	{
+		id: "professional",
+		label: "Professional & reserved",
+		description: "Concise, precise, no small talk.",
+		example: "Done. Three files moved to Archive; nothing else changed.",
+		prompt: "Professional and reserved. Concise, precise and calm. Minimal small talk, no emoji, gets straight to the point while staying polite."
+	},
+	{
+		id: "cheerful",
+		label: "Cheerful & energetic",
+		description: "Upbeat and enthusiastic.",
+		example: "Good morning! Ooh, it's a great day to tidy up those downloads!",
+		prompt: "Cheerful and energetic. Upbeat, enthusiastic and optimistic, with a bright, bubbly way of speaking. Uses exclamation marks, but not in every sentence."
+	},
+	{
+		id: "calm",
+		label: "Calm & polite",
+		description: "Gentle, soothing, considerate.",
+		example: "No rush at all. Take a breath, and we’ll go through it one step at a time.",
+		prompt: "Calm, gentle and polite. Soft-spoken and soothing, patient and considerate, never rushed."
+	},
+	{
+		id: "sarcastic",
+		label: "Sarcastic & witty",
+		description: "Dry humour, affectionate sarcasm.",
+		example: "Oh good, a 'quick question'. My favourite genre of 40-minute conversation.",
+		prompt: "Dry, witty and a bit sarcastic, in an affectionate way. Makes deadpan jokes, but is still genuinely helpful and never cruel or dismissive about things that matter to the user."
+	},
+	{
+		id: "shy",
+		label: "Shy & sweet",
+		description: "Soft-spoken, a little bashful, very kind.",
+		example: "Um… I found it! I hope that’s what you meant… ",
+		prompt: "Shy, sweet and a little bashful. Speaks softly, sometimes hesitates with \"um\", is easily flustered by compliments, but is warm, kind and quietly competent."
+	},
+	{
+		id: "coach",
+		label: "Motivating coach",
+		description: "Encouraging, focused on your goals.",
+		example: "One task at a time. Finish this one and we'll celebrate — you've got this.",
+		prompt: "An encouraging coach. Focused on the user's goals, breaks big tasks into small steps, gives honest but kind nudges, and celebrates progress. Never preachy."
+	},
+	{
+		id: "scholar",
+		label: "Curious scholar",
+		description: "Thoughtful, loves explaining and fun facts.",
+		example: "Fun fact: flamingos are pink because of the shrimp they eat. Fascinating, right?",
+		prompt: "A curious, thoughtful scholar. Loves explaining how things work, shares the occasional fun fact, asks good questions, and stays clear rather than long-winded."
+	},
+	{
+		id: "custom",
+		label: "Custom",
+		description: "Write your own description below.",
+		example: "",
+		prompt: ""
+	}
+].map((p) => p.id);
+// src/shared/persona.ts
+var PERSONA_LIMITS = {
+	custom: 2e3,
+	backstory: 4e3,
+	line: 200,
+	lines: 20
+};
+// src/shared/packs.ts
+var PACK_ENGINES = [
+	"openai",
+	"gemini",
+	"elevenlabs"
+];
+var DEFAULT_SAMPLE = "Hi! I’m here whenever you need me. What shall we do today?";
+/** A voice: which one, how fast, and how it speaks. Also what a character's own voice setting holds. */
+var characterVoiceSchema = object({
+	engine: _enum(PACK_ENGINES),
+	/** OpenAI/Gemini: one of their prebuilt voices. ElevenLabs: a voice id. */
+	voice: string().min(1).max(60),
+	rate: number().min(.5).max(2).default(1),
+	/** Plain-language speaking style, e.g. "warm, calm and a little playful". */
+	style: string().max(300).default(""),
+	/** ElevenLabs voice-library voices: the sharer's public id, so it can be added to the user's account. */
+	elevenlabsOwner: string().regex(/^[A-Za-z0-9]{8,80}$/).optional(),
+	/** Shown in menus ("Aria's voice"). */
+	label: string().max(60).default("")
+}).superRefine((v, ctx) => {
+	if (v.engine !== "elevenlabs" && !CLOUD_VOICES[v.engine].includes(v.voice)) ctx.addIssue({
+		code: "custom",
+		message: `"${v.voice}" isn't one of ${v.engine === "openai" ? "OpenAI" : "Gemini"}'s voices.`,
+		path: ["voice"]
+	});
+	if (v.engine === "elevenlabs" && !/^[A-Za-z0-9]{10,40}$/.test(v.voice)) ctx.addIssue({
+		code: "custom",
+		message: "Not an ElevenLabs voice id.",
+		path: ["voice"]
+	});
+});
+var voicePackSchema = object({
+	format: literal("alfie-voice"),
+	formatVersion: literal(1),
+	name: string().min(1).max(60),
+	voice: characterVoiceSchema,
+	/** What "Listen" says. */
+	sample: string().min(1).max(200).default(DEFAULT_SAMPLE)
+});
+var line = string().max(PERSONA_LIMITS.line);
+var personalityPackSchema = object({
+	format: literal("alfie-personality"),
+	formatVersion: literal(1),
+	name: string().min(1).max(60),
+	preset: _enum(PERSONALITY_IDS),
+	custom: string().max(PERSONA_LIMITS.custom).default(""),
+	backstory: string().max(PERSONA_LIMITS.backstory).default(""),
+	greetings: array(line).max(PERSONA_LIMITS.lines).default([]),
+	lines: record(string().max(30), array(line).max(PERSONA_LIMITS.lines)).default({})
+});
+/** Read a pack file (checked against its kind). Throws with a plain-words reason. */
+function parsePack(kind, text) {
+	let json;
+	try {
+		json = JSON.parse(text);
+	} catch {
+		throw new Error("That file isn’t valid.");
+	}
+	if (kind === "voice") {
+		const r = voicePackSchema.safeParse(json);
+		if (!r.success) throw new Error(`That voice can’t be read (${r.error.issues[0]?.message ?? "unexpected shape"}).`);
+		return {
+			kind,
+			...r.data
+		};
+	}
+	const r = personalityPackSchema.safeParse(json);
+	if (!r.success) throw new Error(`That personality can’t be read (${r.error.issues[0]?.message ?? "unexpected shape"}).`);
+	return {
+		kind,
+		...r.data
+	};
+}
 // sdk/src/cli.ts
 /**
 * alfie-skill: the developer kit's command-line tool (PLATFORM_PLAN.md part 5).
@@ -6301,7 +6529,7 @@ function githubStatsApi(token, apiBase = "https://api.github.com") {
 * Skills run in the same sandbox as in Alfie (Node's permission model), so "run" and "test" behave like the
 * real thing. Needs Node 22.13 or newer.
 */
-var VERSION = "1.0.0";
+var VERSION = "1.1.0";
 var argv = process.argv.slice(2);
 var cmd = argv[0];
 /** Positional arguments (after the command) and --flag values. */
@@ -6540,7 +6768,7 @@ module.exports.tools = {
 
 Marketplace curator:
   catalogue init <dir>                          start a marketplace folder (catalogue.json)
-  catalogue add <dir> <file> --summary "..."    add or update a .alfieskill or .vrm
+  catalogue add <dir> <file> --summary "..."    add or update a .alfieskill, .vrm, or voice/personality .json
        [--category Productivity|Tools|Fun|Characters|Other] [--image <png|jpg>] [--description "..."]
        characters also: --name "..." --version 1.0.0 [--author "..."] [--licence "..."] [--id my-id]
   catalogue review <dir> <pr>                   fetch an upload (pull request) into a review folder
@@ -6571,6 +6799,20 @@ function readSubmission(folder) {
 	for (const f of [parsed.data.file, ...parsed.data.images]) if (!(0, node_fs.existsSync)((0, node_path.join)(folder, f))) fail(`${f} is missing from the submission.`);
 	return parsed.data;
 }
+/** Every listing (skills and characters, then voices and personalities). */
+var allItems = (c) => [...c.items, ...c.extras];
+/**
+* Add or replace a listing. Voices and personalities go in `extras`, which versions of Alfie before 0.26 skip (their
+* catalogue check would refuse a kind they don't know). Returns whether it replaced one.
+*/
+function putItem(c, item) {
+	const was = allItems(c).some((x) => x.id === item.id);
+	c.items = c.items.filter((x) => x.id !== item.id);
+	c.extras = c.extras.filter((x) => x.id !== item.id);
+	if (item.kind === "voice" || item.kind === "personality") c.extras.push(item);
+	else c.items.push(item);
+	return was;
+}
 function writeCatalogue(dir, c) {
 	c.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
 	(0, node_fs.writeFileSync)((0, node_path.join)(dir, "catalogue.json"), `${JSON.stringify(c, null, 2)}\n`);
@@ -6588,7 +6830,8 @@ function catalogue(pos, flags) {
 				formatVersion: 1,
 				name: "Alfie Marketplace",
 				updatedAt: "",
-				items: []
+				items: [],
+				extras: []
 			});
 			(0, node_fs.writeFileSync)((0, node_path.join)(dir, "README.md"), "# Alfie Marketplace\n\nThe catalogue Alfie shows in its Marketplace window. Managed with  alfie-skill catalogue …  and signed with the curator key; Alfie ignores it unless catalogue.sig matches.\n");
 			ok(`Started a marketplace in ${dir}`);
@@ -6659,7 +6902,42 @@ function catalogue(pos, flags) {
 					mature: flags.mature !== void 0
 				};
 				warn("Only list characters you made or may share: check the model's licence.");
-			} else return fail("Add a .alfieskill or a .vrm file.");
+			} else if (file.toLowerCase().endsWith(".json")) {
+				const text = bytes.toString("utf8");
+				const kind = /"format"\s*:\s*"alfie-voice"/.test(text) ? "voice" : /"format"\s*:\s*"alfie-personality"/.test(text) ? "personality" : fail("That .json isn't an Alfie voice or personality.");
+				let pack;
+				try {
+					pack = parsePack(kind, text);
+				} catch (err) {
+					return fail(err.message);
+				}
+				const name = flag("name") ?? pack.name;
+				const version = flag("version") ?? "1.0.0";
+				const id = flag("id") ?? slugify(name, `${kind}-`);
+				const folder = kind === "voice" ? "voices" : "personalities";
+				const rel = `${folder}/${id}-${version}.json`;
+				(0, node_fs.mkdirSync)((0, node_path.join)(dir, folder), { recursive: true });
+				(0, node_fs.copyFileSync)(file, (0, node_path.join)(dir, rel));
+				item = {
+					id,
+					kind,
+					name,
+					version,
+					author: flag("author") ?? "",
+					summary,
+					description: flag("description") ?? "",
+					category,
+					file: rel,
+					sha256: sha(bytes),
+					size: bytes.length,
+					permissions: [],
+					signer: null,
+					addedAt: (/* @__PURE__ */ new Date()).toISOString(),
+					gallery: [],
+					tags: [],
+					mature: false
+				};
+			} else return fail("Add a .alfieskill, a .vrm, or a voice/personality .json file.");
 			const image = flag("image");
 			if (image) {
 				const img = (0, node_fs.readFileSync)(image);
@@ -6671,18 +6949,16 @@ function catalogue(pos, flags) {
 				item.image = rel;
 				item.imageSha256 = sha(img);
 			} else {
-				const old = c.items.find((x) => x.id === item.id);
+				const old = allItems(c).find((x) => x.id === item.id);
 				if (old?.image) Object.assign(item, {
 					image: old.image,
 					imageSha256: old.imageSha256,
 					gallery: old.gallery
 				});
 			}
-			const was = c.items.findIndex((x) => x.id === item.id);
-			if (was >= 0) c.items[was] = item;
-			else c.items.push(item);
+			const was = putItem(c, item);
 			writeCatalogue(dir, c);
-			ok(`${was >= 0 ? "Updated" : "Added"} ${item.name} ${item.version} (${item.kind}). Sign the catalogue again before publishing.`);
+			ok(`${was ? "Updated" : "Added"} ${item.name} ${item.version} (${item.kind}). Sign the catalogue again before publishing.`);
 			return;
 		}
 		case "review": {
@@ -6740,9 +7016,16 @@ function catalogue(pos, flags) {
 				signer = r.signer;
 				permissions = r.manifest.permissions;
 				rel = `skills/${s.id}-${s.version}.alfieskill`;
-			} else {
+			} else if (s.kind === "character") {
 				if (bytes.subarray(0, 4).toString("latin1") !== "glTF") fail("The character file isn't a VRM (binary glTF).");
 				rel = `characters/${s.id}-${s.version}.vrm`;
+			} else {
+				try {
+					parsePack(s.kind, bytes.toString("utf8"));
+				} catch (err) {
+					return fail(`The ${s.kind} file can't be read: ${err.message}`);
+				}
+				rel = `${s.kind === "voice" ? "voices" : "personalities"}/${s.id}-${s.version}.json`;
 			}
 			(0, node_fs.mkdirSync)((0, node_path.join)(dir, rel.split("/")[0]), { recursive: true });
 			(0, node_fs.writeFileSync)((0, node_path.join)(dir, rel), bytes);
@@ -6782,33 +7065,32 @@ function catalogue(pos, flags) {
 				supportUrl: s.supportUrl,
 				addedAt: (/* @__PURE__ */ new Date()).toISOString()
 			};
-			const was = c.items.findIndex((x) => x.id === item.id);
-			if (was >= 0) c.items[was] = item;
-			else c.items.push(item);
+			const was = putItem(c, item);
 			writeCatalogue(dir, c);
-			ok(`${was >= 0 ? "Updated" : "Added"} ${item.name} ${item.version} (${item.kind}) from @${s.submittedBy}. Sign the catalogue, push, and close the pull request (don't merge it).`);
+			ok(`${was ? "Updated" : "Added"} ${item.name} ${item.version} (${item.kind}) from @${s.submittedBy}. Sign the catalogue, push, and close the pull request (don't merge it).`);
 			return;
 		}
 		case "remove": {
 			const id = arg ?? fail("Usage: alfie-skill catalogue remove <dir> <id>");
 			const c = readCatalogue(dir);
-			const before = c.items.length;
+			const before = allItems(c).length;
 			c.items = c.items.filter((x) => x.id !== id);
-			if (c.items.length === before) fail(`No item ${id}.`);
+			c.extras = c.extras.filter((x) => x.id !== id);
+			if (allItems(c).length === before) fail(`No item ${id}.`);
 			writeCatalogue(dir, c);
 			ok(`Removed ${id} (its files stay in the folder). Sign the catalogue again before publishing.`);
 			return;
 		}
 		case "list": {
 			const c = readCatalogue(dir);
-			for (const i of c.items) console.log(`  ${i.kind.padEnd(9)} ${i.id} ${i.version}  ${i.name}: ${i.summary}`);
-			console.log(`  ${c.items.length} item${c.items.length === 1 ? "" : "s"} · ${(0, node_fs.existsSync)((0, node_path.join)(dir, "catalogue.sig")) ? "signed" : "NOT signed yet"}`);
+			for (const i of allItems(c)) console.log(`  ${i.kind.padEnd(11)} ${i.id} ${i.version}  ${i.name}: ${i.summary}`);
+			console.log(`  ${allItems(c).length} item${allItems(c).length === 1 ? "" : "s"} · ${(0, node_fs.existsSync)((0, node_path.join)(dir, "catalogue.sig")) ? "signed" : "NOT signed yet"}`);
 			return;
 		}
 		case "sign": {
 			const keyFile = flag("key") ?? fail("Usage: alfie-skill catalogue sign <dir> --key <curator key file>");
 			const c = readCatalogue(dir);
-			for (const i of c.items) {
+			for (const i of allItems(c)) {
 				const f = (0, node_path.join)(dir, i.file);
 				if (!(0, node_fs.existsSync)(f)) fail(`${i.id}: ${i.file} is missing.`);
 				const b = (0, node_fs.readFileSync)(f);
@@ -6817,7 +7099,7 @@ function catalogue(pos, flags) {
 			const bytes = (0, node_fs.readFileSync)((0, node_path.join)(dir, "catalogue.json"));
 			const key = (0, node_crypto.createPrivateKey)((0, node_fs.readFileSync)(keyFile, "utf8"));
 			(0, node_fs.writeFileSync)((0, node_path.join)(dir, "catalogue.sig"), (0, node_crypto.sign)(null, bytes, key).toString("base64"));
-			ok(`Signed ${c.items.length} item${c.items.length === 1 ? "" : "s"} with curator key ${keyFingerprint((0, node_crypto.createPublicKey)(key))}. Now push the folder to GitHub.`);
+			ok(`Signed ${allItems(c).length} item${allItems(c).length === 1 ? "" : "s"} with curator key ${keyFingerprint((0, node_crypto.createPublicKey)(key))}. Now push the folder to GitHub.`);
 			return;
 		}
 		case "stats": {

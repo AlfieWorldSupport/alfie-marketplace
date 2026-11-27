@@ -14,8 +14,10 @@ with **Install a skill…**. A complete example is in [`examples/unit-converter`
 
 ## The alfie-skill tool (developer kit)
 
-Download [`tools/alfie-skill.cjs`](tools/alfie-skill.cjs) from this repository and run it with `node alfie-skill.cjs <command>`.
-It's a single file and needs only [Node.js](https://nodejs.org) 22.13 or newer.
+It's on npm as [`alfie-skill`](https://www.npmjs.com/package/alfie-skill): with [Node.js](https://nodejs.org) 22.13 or
+newer, run `npx alfie-skill <command>` (nothing to install first), or `npm install -g alfie-skill` once and then
+`alfie-skill <command>`. It's also a single file, [`tools/alfie-skill.cjs`](tools/alfie-skill.cjs), if you'd rather
+download it and run `node alfie-skill.cjs <command>`.
 
 | Command | What it does |
 |---|---|
@@ -30,10 +32,10 @@ It's a single file and needs only [Node.js](https://nodejs.org) 22.13 or newer.
 A typical session:
 
 ```bash
-node alfie-skill.cjs create weather --name "Weather"
-node alfie-skill.cjs test weather
-node alfie-skill.cjs keygen --out C:\Keys\alfie-signing-key.pem
-node alfie-skill.cjs pack weather --key C:\Keys\alfie-signing-key.pem --out dist
+npx alfie-skill create weather --name "Weather"
+npx alfie-skill test weather
+npx alfie-skill keygen --out C:\Keys\alfie-signing-key.pem
+npx alfie-skill pack weather --key C:\Keys\alfie-signing-key.pem --out dist
 ```
 
 ### Signing

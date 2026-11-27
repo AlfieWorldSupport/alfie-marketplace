@@ -27,11 +27,11 @@ Submitting is free. Not everything is accepted; the reply says why if it isn't.
 
 Before you submit:
 
-- Test it: `node alfie-skill.cjs test <folder>` (put a few cases in `tests.json`).
+- Test it: `npx alfie-skill test <folder>` (put a few cases in `tests.json`).
 - **Sign it with your own key** and keep that key for every future version:
-  `node alfie-skill.cjs keygen --out <somewhere safe>\alfie-signing-key.pem`, then
-  `node alfie-skill.cjs pack <folder> --key <that key> --out dist`. Never share or upload the key itself.
-- Check the package: `node alfie-skill.cjs inspect dist\<id>-<version>.alfieskill` shows your **maker
+  `npx alfie-skill keygen --out <somewhere safe>\alfie-signing-key.pem`, then
+  `npx alfie-skill pack <folder> --key <that key> --out dist`. Never share or upload the key itself.
+- Check the package: `npx alfie-skill inspect dist\<id>-<version>.alfieskill` shows your **maker
   fingerprint**; put it in the form.
 - Ask only for the permissions it needs (`files.read`, `files.write`, `programs`, `network`) and say why in the
   form.
@@ -50,6 +50,21 @@ behalf without asking, mines cryptocurrency, shows ads, or tries to get around A
 - Give the licence (VRoid Hub or VRM metadata settings, or a link to the terms).
 - Zip the `.vrm` and attach it (GitHub attachments are limited to 25 MB; for bigger files, give a download link).
 - A picture helps: a PNG or JPEG, ideally 16:9, at most 2 MB.
+
+## Voices and personalities
+
+Made in Alfie 0.26 or later, in the **Characters** window:
+
+- **A voice:** **Voice** → *own voice*: pick a service (OpenAI, Gemini or ElevenLabs), a voice, its speed and a
+  speaking style ("warm, calm and a little playful"), **Listen** until it's right, then **Share this voice**. People
+  who install it hear it with their own key for that service. ElevenLabs voices must come from ElevenLabs' public
+  voice library, so they work for everyone.
+- **A personality:** **Personality** → set it up (kind, notes, backstory, greetings and lines), then **Share this
+  personality**.
+
+Share opens the Upload page with it already chosen: add a summary (and a picture if you like) and send. Don't copy a
+real person or a character you don't have the rights to, and keep it friendly: personalities that are rude, unsafe or
+"jailbreaks" aren't listed.
 
 ## After you send it: My uploads
 

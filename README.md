@@ -1,11 +1,13 @@
 # Alfie Marketplace
 
-The catalogue Alfie shows in its **Marketplace** window: skills (new abilities) and characters.
+The catalogue Alfie shows in its **Marketplace** window: skills (new abilities), characters, voices and
+personalities. Browse it on the web at <https://alfieworldsupport.github.io/market.html> (**Open in Alfie** shows a
+listing in the app).
 
 - **Want to offer something?** See [SUBMITTING.md](SUBMITTING.md): make it, submit it with a form, and it's
   listed once it has been reviewed.
-- **Making a skill?** See [MAKING-SKILLS.md](MAKING-SKILLS.md). The developer kit is
-  [`tools/alfie-skill.cjs`](tools/alfie-skill.cjs) (needs Node.js 22.13 or newer), and there's an example in
+- **Making a skill?** See [MAKING-SKILLS.md](MAKING-SKILLS.md). The developer kit is `npx alfie-skill` (on npm; needs
+  Node.js 22.13 or newer; also here as [`tools/alfie-skill.cjs`](tools/alfie-skill.cjs)), and there's an example in
   [`examples/unit-converter`](examples/unit-converter).
 
 ## How the catalogue is protected
