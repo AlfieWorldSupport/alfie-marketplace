@@ -51,9 +51,18 @@ behalf without asking, mines cryptocurrency, shows ads, or tries to get around A
 - Zip the `.vrm` and attach it (GitHub attachments are limited to 25 MB; for bigger files, give a download link).
 - A picture helps: a PNG or JPEG, ideally 16:9, at most 2 MB.
 
+## After you send it: My uploads
+
+In Alfie 0.23 or later, the Marketplace window has **My uploads** (next to Upload). It shows everything you've sent and
+where it stands: **In review**, **Needs changes** (with the curator's reply), **Live**, or **Not accepted** (with the
+reason). **Send changes** opens the Upload form filled in from your earlier upload, pictures included: choose the file
+again, change what was asked, and send. The old pull request is closed for you.
+
 ## Updates and removal
 
-- **Update:** submit again with the new version (same skill id; signed with the same key). People who have the
-  old one see **Update** in the Marketplace.
+- **Update:** in My uploads, **Upload a new version** on a Live item fills the form in with the next version number;
+  choose the new file and send. Or submit again with the new version (same skill id; signed with the same key).
+  People who have the old one see **Update** in the Marketplace.
+- **Report:** every listing in the Marketplace has **Report**; use it if something is copied, harmful or broken.
 - **Remove:** open an issue asking for it to be taken down; it's removed from the catalogue (people who installed it
   keep their copy).
