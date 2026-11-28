@@ -7,8 +7,9 @@ listing in the app).
 - **Want to offer something?** See [SUBMITTING.md](SUBMITTING.md): make it, submit it with a form, and it's
   listed once it has been reviewed.
 - **Making a skill?** See [MAKING-SKILLS.md](MAKING-SKILLS.md). The developer kit is `npx alfie-skill` (on npm; needs
-  Node.js 22.13 or newer; also here as [`tools/alfie-skill.cjs`](tools/alfie-skill.cjs)), and there's an example in
-  [`examples/unit-converter`](examples/unit-converter).
+  Node.js 22.13 or newer; also here as [`tools/alfie-skill.cjs`](tools/alfie-skill.cjs)). The sources of the skills
+  made by Alfie are examples to learn from, in [`examples/`](examples): unit converter, dice and chance, password
+  maker, world clock, text tools, money maths and colour tools (each with `tests.json`).
 
 ## How the catalogue is protected
 
