@@ -1,0 +1,215 @@
+{
+  "format": "alfie-stats",
+  "formatVersion": 1,
+  "updatedAt": "2026-11-28T04:23:34.379Z",
+  "items": {
+    "unit-converter": {
+      "downloads": 1,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 1,
+      "assets": {
+        "1.0.0": "unit-converter-1.0.0.alfieskill"
+      }
+    },
+    "dice-and-chance": {
+      "downloads": 2,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 2,
+      "assets": {
+        "1.0.0": "dice-and-chance-1.0.0.alfieskill"
+      }
+    },
+    "password-maker": {
+      "downloads": 0,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 3,
+      "assets": {
+        "1.0.0": "password-maker-1.0.0.alfieskill"
+      }
+    },
+    "world-clock": {
+      "downloads": 0,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 4,
+      "assets": {
+        "1.0.0": "world-clock-1.0.0.alfieskill"
+      }
+    },
+    "text-tools": {
+      "downloads": 0,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 5,
+      "assets": {
+        "1.0.0": "text-tools-1.0.0.alfieskill"
+      }
+    },
+    "money-maths": {
+      "downloads": 0,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 6,
+      "assets": {
+        "1.0.0": "money-maths-1.0.0.alfieskill"
+      }
+    },
+    "colour-tools": {
+      "downloads": 0,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 7,
+      "assets": {
+        "1.0.0": "colour-tools-1.0.0.alfieskill"
+      }
+    },
+    "cosy-librarian": {
+      "downloads": 0,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 8,
+      "assets": {
+        "1.0.0": "cosy-librarian-1.0.0.json"
+      }
+    },
+    "star-navigator": {
+      "downloads": 0,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 9,
+      "assets": {
+        "1.0.0": "star-navigator-1.0.0.json"
+      }
+    },
+    "garden-sprite": {
+      "downloads": 0,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 10,
+      "assets": {
+        "1.0.0": "garden-sprite-1.0.0.json"
+      }
+    },
+    "gym-buddy": {
+      "downloads": 0,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 11,
+      "assets": {
+        "1.0.0": "gym-buddy-1.0.0.json"
+      }
+    },
+    "grumpy-cat": {
+      "downloads": 0,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 12,
+      "assets": {
+        "1.0.0": "grumpy-cat-1.0.0.json"
+      }
+    },
+    "shy-ghost": {
+      "downloads": 0,
+      "rating": null,
+      "ratings": 0,
+      "stars": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reviewsIssue": 13,
+      "assets": {
+        "1.0.0": "shy-ghost-1.0.0.json"
+      }
+    }
+  }
+}
